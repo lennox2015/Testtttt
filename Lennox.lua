@@ -2,8 +2,10 @@ loadstring([[
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+local isMobile = UserInputService.TouchEnabled
 
 -- Settings
 local flyEnabled = false
@@ -24,14 +26,14 @@ screenGui.Name = "DevMenuGui"
 screenGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,320,0,280)
-frame.Position = UDim2.new(0.5,-160,0.5,-140)
+frame.Size = UDim2.new(0,320,0,320)
+frame.Position = UDim2.new(0.5,-160,0.5,-160)
 frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
 
--- Dragging
+-- Dragging (PC and Mobile)
 local dragging, dragInput, mousePos, framePos = false
 local function update(input)
     local delta = input.Position - mousePos
@@ -39,7 +41,7 @@ local function update(input)
                                framePos.Y.Scale, framePos.Y.Offset + delta.Y)
 end
 frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or isMobile then
         dragging = true
         mousePos = input.Position
         framePos = frame.Position
@@ -173,7 +175,7 @@ end)
 local menuToggle = Instance.new("TextButton")
 menuToggle.Size = UDim2.new(0,30,0,30)
 menuToggle.Position = UDim2.new(0,10,0,10)
-menuToggle.Text = "M"
+menuToggle.Text = isMobile and "☰" or "M"
 menuToggle.Font = Enum.Font.GothamBold
 menuToggle.TextSize = 18
 menuToggle.BackgroundColor3 = Color3.fromRGB(150,150,150)
@@ -186,7 +188,7 @@ local function toggleMenu()
 end
 menuToggle.MouseButton1Click:Connect(toggleMenu)
 UserInputService.InputBegan:Connect(function(input,gp)
-    if not gp and input.KeyCode == Enum.KeyCode.M then toggleMenu() end
+    if not gp and not isMobile and input.KeyCode == Enum.KeyCode.M then toggleMenu() end
 end)
 
 -- Close button
@@ -201,12 +203,33 @@ closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
 closeBtn.Parent = frame
 closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
--- Fly input tracking
+-- Mobile Fly Buttons
+local mobileButtons = {}
+if isMobile then
+    local directions = {"Forward","Back","Left","Right","Up","Down"}
+    local offsets = {{120,200},{120,240},{80,220},{160,220},{240,220},{240,260}}
+    for i,dir in ipairs(directions) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0,60,0,30)
+        btn.Position = UDim2.new(0,offsets[i][1],0,offsets[i][2])
+        btn.Text = dir
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 16
+        btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+        btn.TextColor3 = Color3.fromRGB(255,255,255)
+        btn.Parent = frame
+        mobileButtons[dir] = btn
+        btn.MouseButton1Down:Connect(function() keys[dir] = true end)
+        btn.MouseButton1Up:Connect(function() keys[dir] = false end)
+    end
+end
+
+-- Fly input for PC
 UserInputService.InputBegan:Connect(function(input,gp)
-    if not gp then keys[input.KeyCode] = true end
+    if not gp and not isMobile then keys[input.KeyCode] = true end
 end)
 UserInputService.InputEnded:Connect(function(input)
-    keys[input.KeyCode] = false
+    if not isMobile then keys[input.KeyCode] = false end
 end)
 
 -- Main loop
@@ -254,14 +277,24 @@ RunService.RenderStepped:Connect(function()
                 flyBG.CFrame = hrp.CFrame
                 flyBG.Parent = hrp
             end
-            local cam = workspace.CurrentCamera.CFrame
+
             local move = Vector3.new()
-            if keys[Enum.KeyCode.W] then move = move + cam.LookVector end
-            if keys[Enum.KeyCode.S] then move = move - cam.LookVector end
-            if keys[Enum.KeyCode.A] then move = move - cam.RightVector end
-            if keys[Enum.KeyCode.D] then move = move + cam.RightVector end
-            if keys[Enum.KeyCode.Space] then move = move + Vector3.new(0,1,0) end
-            if keys[Enum.KeyCode.LeftShift] then move = move - Vector3.new(0,1,0) end
+            local cam = workspace.CurrentCamera.CFrame
+            if isMobile then
+                if keys["Forward"] then move = move + cam.LookVector end
+                if keys["Back"] then move = move - cam.LookVector end
+                if keys["Left"] then move = move - cam.RightVector end
+                if keys["Right"] then move = move + cam.RightVector end
+                if keys["Up"] then move = move + Vector3.new(0,1,0) end
+                if keys["Down"] then move = move - Vector3.new(0,1,0) end
+            else
+                if keys[Enum.KeyCode.W] then move = move + cam.LookVector end
+                if keys[Enum.KeyCode.S] then move = move - cam.LookVector end
+                if keys[Enum.KeyCode.A] then move = move - cam.RightVector end
+                if keys[Enum.KeyCode.D] then move = move + cam.RightVector end
+                if keys[Enum.KeyCode.Space] then move = move + Vector3.new(0,1,0) end
+                if keys[Enum.KeyCode.LeftShift] then move = move - Vector3.new(0,1,0) end
+            end
 
             if move.Magnitude > 0 then
                 flyBV.Velocity = move.Unit * flySpeed
