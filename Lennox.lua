@@ -73,7 +73,7 @@ local function createLabel(text,posY)
     lbl.Parent = frame
     return lbl
 end
-createLabel("Dev Menu",10)
+createLabel("Lennox Menu",10)
 
 -- WalkSpeed
 local speedInput = Instance.new("TextBox")
