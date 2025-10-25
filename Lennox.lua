@@ -2,7 +2,6 @@ loadstring([[
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local GuiService = game:GetService("GuiService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local isMobile = UserInputService.TouchEnabled
@@ -12,6 +11,10 @@ local flyEnabled = false
 local flySpeed = 50
 local menuVisible = true
 local espEnabled = false
+local espColor = Color3.fromRGB(255,0,0)
+local espType = "FullBody"
+local espTransparency = 0.5
+local espAlwaysOnTop = true
 local flyBV, flyBG
 local keys = {}
 local espBoxes = {}
@@ -26,14 +29,14 @@ screenGui.Name = "DevMenuGui"
 screenGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,320,0,320)
-frame.Position = UDim2.new(0.5,-160,0.5,-160)
+frame.Size = UDim2.new(0,320,0,460)
+frame.Position = UDim2.new(0.5,-160,0.5,-230)
 frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
 
--- Dragging (PC and Mobile)
+-- Dragging
 local dragging, dragInput, mousePos, framePos = false
 local function update(input)
     local delta = input.Position - mousePos
@@ -117,12 +120,90 @@ espToggle.MouseButton1Click:Connect(function()
     espToggle.Text = "ESP: "..(espEnabled and "ON" or "OFF")
     if not espEnabled then
         for _, boxes in pairs(espBoxes) do
-            for _, box in pairs(boxes) do
-                pcall(function() box:Destroy() end)
-            end
+            for _, box in pairs(boxes) do pcall(function() box:Destroy() end) end
         end
         espBoxes = {}
     end
+end)
+
+-- ESP Settings Section
+local espLabel = createLabel("ESP Settings",120)
+
+-- Color RGB
+local rSlider = Instance.new("TextBox")
+rSlider.Size = UDim2.new(0,50,0,25)
+rSlider.Position = UDim2.new(0,10,0,150)
+rSlider.PlaceholderText = "R"
+rSlider.Font = Enum.Font.Gotham
+rSlider.TextSize = 14
+rSlider.Parent = frame
+
+local gSlider = rSlider:Clone()
+gSlider.Position = UDim2.new(0,70,0,150)
+gSlider.PlaceholderText = "G"
+gSlider.Parent = frame
+
+local bSlider = rSlider:Clone()
+bSlider.Position = UDim2.new(0,130,0,150)
+bSlider.PlaceholderText = "B"
+bSlider.Parent = frame
+
+local function updateColor()
+    local r = tonumber(rSlider.Text) or 255
+    local g = tonumber(gSlider.Text) or 0
+    local b = tonumber(bSlider.Text) or 0
+    espColor = Color3.fromRGB(math.clamp(r,0,255),math.clamp(g,0,255),math.clamp(b,0,255))
+end
+
+rSlider.FocusLost:Connect(updateColor)
+gSlider.FocusLost:Connect(updateColor)
+bSlider.FocusLost:Connect(updateColor)
+
+-- ESP Type Dropdown
+local espTypeDropdown = Instance.new("TextButton")
+espTypeDropdown.Size = UDim2.new(0,120,0,30)
+espTypeDropdown.Position = UDim2.new(0,10,0,185)
+espTypeDropdown.Text = "Type: FullBody"
+espTypeDropdown.Font = Enum.Font.GothamBold
+espTypeDropdown.TextSize = 16
+espTypeDropdown.BackgroundColor3 = Color3.fromRGB(100,100,100)
+espTypeDropdown.TextColor3 = Color3.fromRGB(255,255,255)
+espTypeDropdown.Parent = frame
+
+espTypeDropdown.MouseButton1Click:Connect(function()
+    if espType == "FullBody" then espType = "HeadOnly"
+    elseif espType == "HeadOnly" then espType = "Box"
+    else espType = "FullBody" end
+    espTypeDropdown.Text = "Type: "..espType
+end)
+
+-- Transparency Slider
+local transparencySlider = Instance.new("TextBox")
+transparencySlider.Size = UDim2.new(0,50,0,25)
+transparencySlider.Position = UDim2.new(0,10,0,220)
+transparencySlider.PlaceholderText = "0.5"
+transparencySlider.Font = Enum.Font.Gotham
+transparencySlider.TextSize = 14
+transparencySlider.Parent = frame
+
+transparencySlider.FocusLost:Connect(function()
+    local val = tonumber(transparencySlider.Text)
+    if val then espTransparency = math.clamp(val,0,1) end
+end)
+
+-- AlwaysOnTop Toggle
+local alwaysTopBtn = Instance.new("TextButton")
+alwaysTopBtn.Size = UDim2.new(0,150,0,30)
+alwaysTopBtn.Position = UDim2.new(0,10,0,255)
+alwaysTopBtn.Text = "Always On Top: ON"
+alwaysTopBtn.Font = Enum.Font.GothamBold
+alwaysTopBtn.TextSize = 16
+alwaysTopBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
+alwaysTopBtn.TextColor3 = Color3.fromRGB(255,255,255)
+alwaysTopBtn.Parent = frame
+alwaysTopBtn.MouseButton1Click:Connect(function()
+    espAlwaysOnTop = not espAlwaysOnTop
+    alwaysTopBtn.Text = "Always On Top: "..(espAlwaysOnTop and "ON" or "OFF")
 end)
 
 -- Fly Toggle
@@ -140,23 +221,21 @@ flyToggle.MouseButton1Click:Connect(function()
     flyEnabled = not flyEnabled
     flyToggle.Text = "Fly: "..(flyEnabled and "ON" or "OFF")
     local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-    if humanoid and not flyEnabled then
-        humanoid.PlatformStand = false
-    end
+    if humanoid and not flyEnabled then humanoid.PlatformStand = false end
 end)
 
 -- Fly Speed Slider
-local flyLbl = createLabel("Fly Speed: 50",130)
+local flyLbl = createLabel("Fly Speed: 50",300)
 local flyMinus = Instance.new("TextButton")
 flyMinus.Size = UDim2.new(0,40,0,28)
-flyMinus.Position = UDim2.new(0,10,0,160)
+flyMinus.Position = UDim2.new(0,10,0,330)
 flyMinus.Text = "-"
 flyMinus.Font = Enum.Font.GothamBold
 flyMinus.TextSize = 18
 flyMinus.Parent = frame
 local flyPlus = Instance.new("TextButton")
 flyPlus.Size = UDim2.new(0,40,0,28)
-flyPlus.Position = UDim2.new(0,60,0,160)
+flyPlus.Position = UDim2.new(0,60,0,330)
 flyPlus.Text = "+"
 flyPlus.Font = Enum.Font.GothamBold
 flyPlus.TextSize = 18
@@ -207,7 +286,7 @@ closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 local mobileButtons = {}
 if isMobile then
     local directions = {"Forward","Back","Left","Right","Up","Down"}
-    local offsets = {{120,200},{120,240},{80,220},{160,220},{240,220},{240,260}}
+    local offsets = {{120,350},{120,390},{80,370},{160,370},{240,370},{240,410}}
     for i,dir in ipairs(directions) do
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(0,60,0,30)
@@ -248,13 +327,17 @@ RunService.RenderStepped:Connect(function()
                             if not boxes[part] then
                                 local box = Instance.new("BoxHandleAdornment")
                                 box.Adornee = part
-                                box.AlwaysOnTop = true
+                                box.AlwaysOnTop = espAlwaysOnTop
                                 box.ZIndex = 10
                                 box.Size = part.Size
-                                box.Transparency = 0.5
-                                box.Color3 = Color3.fromRGB(255,0,0)
+                                box.Transparency = espTransparency
+                                box.Color3 = espColor
                                 box.Parent = part
                                 boxes[part] = box
+                            else
+                                boxes[part].Color3 = espColor
+                                boxes[part].Transparency = espTransparency
+                                boxes[part].AlwaysOnTop = espAlwaysOnTop
                             end
                         end
                     end
