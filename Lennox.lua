@@ -1,21 +1,23 @@
 loadstring([[
 print("✅")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Entferne vorhandene GUI
-local existing = playerGui:FindFirstChild("SpeedGui")
+-- Remove existing GUI
+local existing = playerGui:FindFirstChild("DevMenuGui")
 if existing then existing:Destroy() end
 
--- GUI erstellen
+-- Create GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SpeedGui"
+screenGui.Name = "DevMenuGui"
 screenGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 140)
-frame.Position = UDim2.new(0.5, -150, 0.5, -70)
+frame.Size = UDim2.new(0, 300, 0, 180)
+frame.Position = UDim2.new(0.5, -150, 0.5, -90)
 frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
@@ -23,83 +25,76 @@ frame.Parent = screenGui
 local uic = Instance.new("UICorner", frame)
 uic.CornerRadius = UDim.new(0,10)
 
--- Funktion für Drag
+-- Dragging
 local dragging = false
 local dragInput, mousePos, framePos
-
 local function update(input)
     local delta = input.Position - mousePos
     frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X,
                                framePos.Y.Scale, framePos.Y.Offset + delta.Y)
 end
-
 frame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
         mousePos = input.Position
         framePos = frame.Position
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
         end)
     end
 end)
-
 frame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
+    if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then update(input) end
 end)
 
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
-end)
-
--- Text und Eingabe
+-- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -20, 0, 30)
 title.Position = UDim2.new(0,10,0,10)
 title.BackgroundTransparency = 1
-title.Text = "WalkSpeed Controller"
+title.Text = "Dev Menu"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.TextColor3 = Color3.fromRGB(255,255,255)
 title.Parent = frame
 
-local input = Instance.new("TextBox")
-input.Size = UDim2.new(0,160,0,32)
-input.Position = UDim2.new(0,10,0,50)
-input.PlaceholderText = "Speed (8-200)"
-input.ClearTextOnFocus = false
-input.Font = Enum.Font.Gotham
-input.TextSize = 20
-input.Text = ""
-input.Parent = frame
+-- WalkSpeed Input
+local speedInput = Instance.new("TextBox")
+speedInput.Size = UDim2.new(0,160,0,32)
+speedInput.Position = UDim2.new(0,10,0,50)
+speedInput.PlaceholderText = "Speed (8-200)"
+speedInput.ClearTextOnFocus = false
+speedInput.Font = Enum.Font.Gotham
+speedInput.TextSize = 20
+speedInput.Text = ""
+speedInput.Parent = frame
 
-local applyBtn = Instance.new("TextButton")
-applyBtn.Size = UDim2.new(0,100,0,32)
-applyBtn.Position = UDim2.new(0,180,0,50)
-applyBtn.Text = "Set Speed"
-applyBtn.Font = Enum.Font.GothamBold
-applyBtn.TextSize = 18
-applyBtn.BackgroundColor3 = Color3.fromRGB(70,130,180)
-applyBtn.TextColor3 = Color3.fromRGB(255,255,255)
-applyBtn.Parent = frame
+local applySpeed = Instance.new("TextButton")
+applySpeed.Size = UDim2.new(0,100,0,32)
+applySpeed.Position = UDim2.new(0,180,0,50)
+applySpeed.Text = "Set Speed"
+applySpeed.Font = Enum.Font.GothamBold
+applySpeed.TextSize = 18
+applySpeed.BackgroundColor3 = Color3.fromRGB(70,130,180)
+applySpeed.TextColor3 = Color3.fromRGB(255,255,255)
+applySpeed.Parent = frame
 
-local info = Instance.new("TextLabel")
-info.Size = UDim2.new(1, -20, 0, 36)
-info.Position = UDim2.new(0,10,0,92)
-info.BackgroundTransparency = 1
-info.Text = "Client-side only. Allowed: 8-200"
-info.Font = Enum.Font.Gotham
-info.TextSize = 14
-info.TextColor3 = Color3.fromRGB(200,200,200)
-info.TextXAlignment = Enum.TextXAlignment.Left
-info.Parent = frame
+-- ESP Toggle
+local espEnabled = false
+local espToggle = Instance.new("TextButton")
+espToggle.Size = UDim2.new(0, 120, 0, 32)
+espToggle.Position = UDim2.new(0,10,0,95)
+espToggle.Text = "ESP: OFF"
+espToggle.Font = Enum.Font.GothamBold
+espToggle.TextSize = 18
+espToggle.BackgroundColor3 = Color3.fromRGB(100,50,180)
+espToggle.TextColor3 = Color3.fromRGB(255,255,255)
+espToggle.Parent = frame
 
+-- Close Button
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0,26,0,26)
 closeBtn.Position = UDim2.new(1,-36,0,8)
@@ -109,23 +104,65 @@ closeBtn.TextSize = 14
 closeBtn.BackgroundColor3 = Color3.fromRGB(180,60,60)
 closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
 closeBtn.Parent = frame
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
 
--- Button Events
-applyBtn.MouseButton1Click:Connect(function()
-    local val = tonumber(input.Text)
-    if not val then
-        info.Text = "Bitte Zahl eingeben."
-        return
-    end
-    val = math.clamp(val,8,200)
-    local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.WalkSpeed = val
-        info.Text = "WalkSpeed gesetzt: "..val
+-- WalkSpeed logic
+applySpeed.MouseButton1Click:Connect(function()
+    local val = tonumber(speedInput.Text)
+    if val then
+        val = math.clamp(val, 8, 200)
+        local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid.WalkSpeed = val end
     end
 end)
 
-closeBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
+-- Full-body ESP logic
+local espBoxes = {}
+espToggle.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    espToggle.Text = "ESP: "..(espEnabled and "ON" or "OFF")
+    if not espEnabled then
+        for _, boxes in pairs(espBoxes) do
+            for _, box in pairs(boxes) do
+                box:Destroy()
+            end
+        end
+        espBoxes = {}
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if espEnabled then
+        for _, other in pairs(Players:GetPlayers()) do
+            if other ~= player and other.Character then
+                local boxes = espBoxes[other] or {}
+                local parts = other.Character:GetChildren()
+                local newBoxes = {}
+                for _, part in pairs(parts) do
+                    if part:IsA("BasePart") then
+                        local box = boxes[part]
+                        if not box then
+                            box = Instance.new("BoxHandleAdornment")
+                            box.Adornee = part
+                            box.AlwaysOnTop = true
+                            box.ZIndex = 10
+                            box.Size = part.Size
+                            box.Transparency = 0.5
+                            box.Color3 = Color3.fromRGB(255,0,0)
+                            box.Parent = part
+                        end
+                        newBoxes[part] = box
+                    end
+                end
+                -- Destroy old boxes no longer needed
+                for p, b in pairs(boxes) do
+                    if not newBoxes[p] then b:Destroy() end
+                end
+                espBoxes[other] = newBoxes
+            end
+        end
+    end
 end)
 ]])()
